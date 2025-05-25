@@ -7,11 +7,25 @@ import {
     StyleSheet,
     Alert,
     ActivityIndicator,
+    Image,
     Animated,
     Easing
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithCredential,
+    signInWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "../../src/firebaseConfig";
+import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from 'react-native-vector-icons/FontAwesome';
+
+// Đảm bảo rằng Expo WebBrowser được xử lý đúng
+WebBrowser.maybeCompleteAuthSession();
 
 const Snowfall = () => {
     const [flakes, setFlakes] = useState([]);
@@ -19,23 +33,25 @@ const Snowfall = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             const newFlake = {
-                left: Math.random() * 100, // Random position %
-                animation: new Animated.Value(0),
+                left: Math.random() * 100, // Random position
+                animation: new Animated.Value(0), // Start position of snowflake
             };
 
-            setFlakes(prev => [...prev, newFlake]);
+            setFlakes((prev) => [...prev, newFlake]);
 
+            // Animate falling
             Animated.timing(newFlake.animation, {
                 toValue: 1,
-                duration: Math.random() * 3000 + 5000,
+                duration: Math.random() * 3000 + 5000, // Random duration for the snowflake to fall
                 easing: Easing.linear,
                 useNativeDriver: true,
             }).start();
 
+            // Remove snowflake after it falls
             setTimeout(() => {
-                setFlakes(prev => prev.filter(flake => flake !== newFlake));
-            }, 6000); // match duration
-        }, 500);
+                setFlakes((prev) => prev.filter((flake) => flake !== newFlake));
+            }, 1000);
+        }, 2000);
 
         return () => clearInterval(interval);
     }, []);
@@ -49,12 +65,14 @@ const Snowfall = () => {
                         styles.snowflake,
                         {
                             left: `${flake.left}%`,
-                            transform: [{
-                                translateY: flake.animation.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, 600], // pixels to fall
-                                }),
-                            }],
+                            transform: [
+                                {
+                                    translateY: flake.animation.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, "100%"], // Snowflake falling
+                                    }),
+                                },
+                            ],
                         },
                     ]}
                 >
@@ -68,7 +86,36 @@ const Snowfall = () => {
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // Biến để kiểm soát trạng thái loading khi đăng nhập
+
+    // Thiết lập request cho Google OAuth
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        clientId: "780547792146-d2br77673sf59rv810f73dthvdl84b7i.apps.googleusercontent.com",
+        redirectUri: "https://auth.expo.io/@phongpvse161146/system_mobile",
+        responseType: "id_token",
+    });
+
+    useEffect(() => {
+        if (response?.type === "success") {
+            const { id_token } = response.params;
+            const credential = GoogleAuthProvider.credential(id_token);
+            setLoading(true); // Bắt đầu trạng thái loading khi đăng nhập
+            signInWithCredential(auth, credential)
+                .then(() => {
+                    setLoading(false); // Đặt trạng thái loading thành false khi đăng nhập thành công
+                    Alert.alert("Đăng nhập Google thành công!");
+                    navigation.navigate("HomePage"); // Chuyển hướng sang trang HomePage
+                })
+                .catch((error) => {
+                    setLoading(false); // Đặt trạng thái loading thành false khi có lỗi
+                    console.error("Firebase Auth Error:", error);
+                    Alert.alert("Đăng nhập thất bại", error.message || "Có lỗi xảy ra khi đăng nhập với Google");
+                });
+        } else if (response?.type === "error") {
+            setLoading(false); // Đặt trạng thái loading thành false khi có lỗi
+            Alert.alert("Lỗi đăng nhập", response.error?.message || "Có lỗi xảy ra khi đăng nhập với Google");
+        }
+    }, [response]);
 
     const handleEmailLogin = () => {
         if (!email || !password) {
@@ -76,32 +123,34 @@ export default function LoginScreen({ navigation }) {
             return;
         }
 
+        // Kiểm tra tính hợp lệ của email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             Alert.alert("Lỗi", "Email không hợp lệ");
             return;
         }
 
-        setLoading(true);
-
-     
-        setTimeout(() => {
-            setLoading(false);
-            Alert.alert("Đăng nhập thành công (giả lập)!");
-            navigation.navigate("HomePage");
-        }, 1500);
-    };
-
-    const handleGoogleLogin = () => {
-       
-        Alert.alert("Chức năng đăng nhập Google chưa được triển khai.");
+        setLoading(true); // Bắt đầu trạng thái loading khi đăng nhập bằng email
+        signInWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                setLoading(false); // Đặt trạng thái loading thành false khi đăng nhập thành công
+                Alert.alert("Đăng nhập thành công!");
+                navigation.navigate("HomePage");
+            })
+            .catch((error) => {
+                setLoading(false); // Đặt trạng thái loading thành false khi có lỗi
+                console.error("Email Auth Error:", error);
+                Alert.alert("Đăng nhập thất bại!", error.message || "Có lỗi xảy ra khi đăng nhập");
+            });
     };
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            {/* Snowfall Effect */}
             <Snowfall />
 
             <View style={styles.container}>
+                <Image style={styles.imgaeHeader} source={require('../../img/logo.png')} />
                 <Text style={styles.title}>Trang Đăng Nhập</Text>
                 <TextInput
                     placeholder="Email"
@@ -128,7 +177,7 @@ export default function LoginScreen({ navigation }) {
 
                 <TouchableOpacity
                     style={styles.googleButton}
-                    onPress={handleGoogleLogin}
+                    onPress={() => promptAsync()}
                     disabled={loading}
                 >
                     <Icon name="google" size={20} color="#fff" style={styles.icon} />
@@ -140,11 +189,8 @@ export default function LoginScreen({ navigation }) {
                         <ActivityIndicator size="large" color="#ffffff" />
                     </View>
                 )}
-
                 <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                    <Text style={[styles.linkText, { color: 'black' }]}>
-                        Chưa có tài khoản? <Text style={{ color: '#cd853f' }}>Đăng ký ngay</Text>
-                    </Text>
+                    <Text style={[styles.linkText, { color: 'black' }]}>Chưa có tài khoản? <Text style={{ color: '#cd853f' }}>Đăng ký ngay</Text></Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -155,6 +201,11 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: "#dcdcdc",
+    },
+    imgaeHeader: {
+        width: 250,
+        height: 300,
+        borderRadius: 10,
     },
     linkText: {
         color: "#4285F4",
@@ -173,7 +224,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 20,
-        marginBottom: 100,
+        marginBottom: 100
     },
     title: {
         fontSize: 24,
@@ -203,16 +254,16 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 10,
+        marginTop: 10
     },
     buttonText: {
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
-        marginLeft: 10,
+        marginLeft: 10
     },
     icon: {
-        marginRight: 10,
+        marginRight: 10
     },
     loadingOverlay: {
         position: "absolute",
