@@ -6,7 +6,7 @@ import VerificationScreen from '../screen/Login/VerificationScreen';
 import ResetPasswordScreen from '../screen/Login/ResetPasswordScreen';
 import SignUpScreen from '../screen/Login/SignUpScreen';
 import BottomTabNavigator from './BottomTabNavigator';
-
+import ChatScreen from '../components/ChatScreen';
 import AppPolicyScreen from '../screen/Home/Profile/Abouts/AppPolicyScreen';
 import LoyalCustomerScreen from '../screen/Home/Profile/Abouts/LoyalCustomerScreen';
 import SupportCallScreen from '../screen/Home/Profile/Abouts/SupportCallScreen';
@@ -113,7 +113,7 @@ export default function StackNavigator() {
                         gestureEnabled: false,
                     }}
                 />
-          
+           <Stack.Screen name="Chat" component={ChatScreen} />
               
              
             

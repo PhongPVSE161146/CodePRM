@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from "react-native";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../src/firebaseConfig";  // Đảm bảo import đúng firebaseConfig
 
 export default function SignUpScreen({ navigation }) {
     const [fullName, setFullName] = useState("");
@@ -14,18 +16,25 @@ export default function SignUpScreen({ navigation }) {
         }
 
         setLoading(true);
-
-        // Giả lập đăng ký thành công
-        setTimeout(() => {
-            setLoading(false);
-            Alert.alert("Thành công", "Đăng ký thành công!", [
-                { text: "OK", onPress: () => navigation.navigate("Verification") }
-            ]);
-        }, 1000);
+        createUserWithEmailAndPassword(auth, email, password)
+            .then((userCredential) => {
+                const user = userCredential.user;
+                console.log("User signed up: ", user);
+                // Chuyển hướng đến trang xác thực mà không hiển thị thông báo đăng ký thành công
+                navigation.navigate("Verification"); // Chuyển hướng sang trang Verification
+            })
+            .catch((error) => {
+                setLoading(false);
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                // console.error("Error during sign up: ", errorCode, errorMessage);
+                Alert.alert("Đăng ký thất bại", "Tài Khoản Này Đã Đăng Kí.");
+            });
     };
 
     return (
         <View style={styles.container}>
+            <Image style={styles.imgaeHeader} source={require('../../img/logo.png')} />
             <Text style={styles.title}>Sign Up</Text>
 
             <TextInput
@@ -33,7 +42,6 @@ export default function SignUpScreen({ navigation }) {
                 placeholder="Full name"
                 value={fullName}
                 onChangeText={setFullName}
-                autoCapitalize="words"
             />
             <TextInput
                 style={styles.input}
@@ -41,7 +49,6 @@ export default function SignUpScreen({ navigation }) {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
-                autoCapitalize="none"
             />
             <TextInput
                 style={styles.input}
@@ -52,7 +59,7 @@ export default function SignUpScreen({ navigation }) {
             />
 
             <TouchableOpacity style={styles.button} onPress={handleSignUp} disabled={loading}>
-                <Text style={styles.buttonText}>{loading ? "Loading..." : "SIGN UP"}</Text>
+                <Text style={styles.buttonText}>SIGN UP</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate("Login")}>
@@ -66,6 +73,12 @@ export default function SignUpScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
+    imgaeHeader: {
+        width: 250,
+        height: 300,
+        borderRadius: 10,
+        marginLeft: 50,
+    },
     title: { fontSize: 28, fontWeight: "bold", textAlign: "center", marginBottom: 16 },
     input: { height: 50, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, marginBottom: 15 },
     button: { backgroundColor: "#FF5733", paddingVertical: 12, borderRadius: 8, alignItems: "center" },

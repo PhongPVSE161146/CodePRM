@@ -1,54 +1,82 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-
+import { View, Text, Image, TouchableOpacity, StyleSheet, Alert, MediaTypeOptions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Import đúng cách
+import { useNavigation } from '@react-navigation/native'; // Import navigation
+import { getAuth } from 'firebase/auth'; // Để lấy thông tin người dùng từ Firebase
+// import * as ImagePicker from 'expo-image-picker'; // Để chọn ảnh từ máy hoặc camera
 
 export default function ProfileScreen() {
     const [imageUri, setImageUri] = useState(null);
     const [userInfo, setUserInfo] = useState({
-        username: 'Viruss',
-        email: 'viruss@example.com',
-        photoURL: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt823sklj0_dEOAH3VzA3SR8ZUVftMdfiylA&s',
-    });
-    const navigation = useNavigation();
+        username: '',
+        email: '',
+        photoURL: '',
+    }); // State để lưu thông tin người dùng
+    const [image, setImage] = useState(null); // State để lưu ảnh mới
+    const navigation = useNavigation(); // Khởi tạo navigation
 
-    const pickImage = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser; // Lấy thông tin người dùng hiện tại từ Firebase
+    const requestPermission = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission denied', 'Bạn cần cấp quyền truy cập vào thư viện ảnh.');
-            return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
-        });
-
-        if (!result.canceled) {
-            setImageUri(result.assets[0].uri);
-        }
+        return status === 'granted';
     };
-
     const handleLogout = () => {
         Alert.alert(
             "Đăng xuất",
             "Bạn có chắc chắn muốn đăng xuất không?",
             [
                 { text: "Hủy", style: "cancel" },
-                { text: "Đăng xuất", onPress: () => navigation.replace("Login") },
+                {
+                    text: "Đăng xuất",
+                    onPress: () => {
+                        navigation.replace("Login"); // ✅ Quay về màn hình Login
+                    },
+                },
             ],
             { cancelable: true }
         );
     };
+    // Hàm để lấy thông tin người dùng từ Firebase
+    useEffect(() => {
+        if (user) {
+            const generatedPhotoURL = `https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt823sklj0_dEOAH3VzA3SR8ZUVftMdfiylA&s`; // Tạo ảnh avatar từ tên người dùng
+            setUserInfo({
+                username: user.displayName || 'Viruss',
+                email: user.email,
+                photoURL: generatedPhotoURL, // Gán URL ảnh avatar mới
+            });
+        }
+    }, [user]);
+
+    // Hàm để chọn ảnh từ máy hoặc camera
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (status !== 'granted') {
+            Alert.alert('Permission denied', 'Bạn cần cấp quyền truy cập vào thư viện ảnh.');
+            return;
+        }
+
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images, // Pick only images
+            allowsEditing: true, // Optionally allow editing (crop/resize)
+            aspect: [4, 3], // Optionally set aspect ratio
+            quality: 1, // Set quality to 1 (high quality)
+        });
+
+        if (!result.canceled) {
+            setImageUri(result.assets[0].uri); // Set selected image URI to state
+        }
+    };
 
     return (
         <View style={styles.container}>
+            {/* Ảnh đại diện */}
             <TouchableOpacity onPress={pickImage}>
                 <Image
-                    source={{ uri: imageUri || userInfo.photoURL }}
+                    source={{ uri: image || userInfo.photoURL }} // Nếu có ảnh mới thì sử dụng, nếu không thì dùng ảnh tạo từ tên người dùng
                     style={styles.avatar}
                 />
             </TouchableOpacity>
@@ -59,32 +87,77 @@ export default function ProfileScreen() {
             <View style={styles.divider} />
             <Text style={styles.sectionTitle}>Tài Khoản</Text>
 
-           
-            <Text style={styles.sectionTitle2}>Khác</Text>
-            <OptionItem icon="document-text-outline" label="Chính Sách Ứng Dụng" onPress={() => navigation.navigate('AppPolicy')} />
-            <OptionItem icon="settings-outline" label="Cài Đặt" onPress={() => navigation.navigate('Settings')} />
-            <OptionItem icon="call-outline" label="Cuộc Gọi Hỗ Trợ" onPress={() => navigation.navigate('SupportCall')} />
-            <OptionItem icon="people-outline" label="Khách Hàng Thân Thiết" onPress={() => navigation.navigate('LoyalCustomer')} />
+            <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('ProfileDetail')}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'flex-start', width: '100%' }}>
+                    <Ionicons name="person-circle-outline" size={30} color="white" />
+                    <Text style={styles.profileText}>Thông Tin Cá Nhân</Text>
+                    <Ionicons name="chevron-forward-outline" size={24} color="white" style={styles.back} />
+                </View>
 
-            <Text style={styles.sectionTitle3}>Version 24.2.1</Text>
 
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                <Ionicons name="log-out-outline" size={24} color="red" style={styles.icon} />
-                <Text style={styles.logoutText}>Đăng Xuất</Text>
+
+
             </TouchableOpacity>
-        </View>
-    );
-}
 
-function OptionItem({ icon, label, onPress }) {
-    return (
-        <TouchableOpacity style={styles.profileButton} onPress={onPress}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'flex-start', width: '100%' }}>
-                <Ionicons name={icon} size={30} color="white" />
-                <Text style={styles.profileText}>{label}</Text>
-                <Ionicons name="chevron-forward-outline" size={24} color="white" style={styles.back} />
+            <Text style={styles.sectionTitle2}>Khác</Text>
+            <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('AppPolicy')}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'flex-start', width: '100%' }}>
+                    <Ionicons name="document-text-outline" size={30} color="white" />
+                    <Text style={styles.profileText}>Chính Sách Ứng Dụng</Text>
+                    <Ionicons name="chevron-forward-outline" size={24} color="white" style={styles.back} />
+                </View>
+
+
+
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('Settings')}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'flex-start', width: '100%' }}>
+                    <Ionicons name="settings-outline" size={30} color="white" />
+                    <Text style={styles.profileText}>Cài Đặt</Text>
+                    <Ionicons name="chevron-forward-outline" size={24} color="white" style={styles.back} />
+                </View>
+
+
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('SupportCall')}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'flex-start', width: '100%' }}>
+                    <Ionicons name="call-outline" size={30} color="white" />
+                    <Text style={styles.profileText}>Cuộc Gọi Hỗ Trợ</Text>
+                    <Ionicons name="chevron-forward-outline" size={24} color="white" style={styles.back} />
+                </View>
+
+
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('LoyalCustomer')}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'flex-start', width: '100%' }}>
+                    <Ionicons name="people-outline" size={30} color="white" />
+                    <Text style={styles.profileText}>Khách Hàng Thân Thiết</Text>
+                    <Ionicons name="chevron-forward-outline" size={24} color="white" style={styles.back} />
+                </View>
+
+
+            </TouchableOpacity>
+            <Text style={styles.sectionTitle3}>Version 24.2.1</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+
+                    <Ionicons name="log-out-outline" size={24} color="red" style={styles.icon} />
+                    <Text style={styles.logoutText}>Đăng Xuất</Text>
+                </TouchableOpacity>
+
             </View>
-        </TouchableOpacity>
+        </View>
     );
 }
 
@@ -97,15 +170,16 @@ const styles = StyleSheet.create({
     },
     back: {
         position: 'absolute',
+
         right: 5,
     },
     logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: 'row', // Để các phần tử nằm ngang
+        alignItems: 'center', // Căn giữa theo chiều dọc
         marginTop: 30,
     },
     icon: {
-        marginRight: 8,
+        marginRight: 8, // Tạo khoảng cách giữa icon và text
         marginTop: 40,
         fontSize: 27,
     },
@@ -149,6 +223,8 @@ const styles = StyleSheet.create({
     },
     sectionTitle3: {
         fontSize: 15,
+
+
         marginTop: 15,
     },
     profileButton: {
@@ -160,10 +236,12 @@ const styles = StyleSheet.create({
         marginTop: 10,
         width: '100%',
         justifyContent: 'center',
+
     },
     profileText: {
         color: '#fff',
         fontSize: 16,
         marginLeft: 5,
+
     },
 });

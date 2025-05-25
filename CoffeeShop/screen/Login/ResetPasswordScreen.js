@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../../src/firebaseConfig";  // Đảm bảo import firebaseConfig đúng
 
 const ResetPasswordScreen = ({ navigation }) => {
     const [email, setEmail] = useState("");
@@ -10,18 +12,22 @@ const ResetPasswordScreen = ({ navigation }) => {
             return;
         }
 
-        // Giả lập thành công gửi email reset mật khẩu
-        Alert.alert(
-            "Thành công",
-            "Email reset mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.",
-            [
-                { text: "OK", onPress: () => navigation.navigate("Login") }
-            ]
-        );
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                Alert.alert("Thành công", "Email reset mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.");
+                navigation.navigate("Login");  // Chuyển hướng về màn hình Login sau khi gửi email
+            })
+            .catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                console.error("Reset password error: ", errorCode, errorMessage);
+                Alert.alert("Lỗi", errorMessage || "Có lỗi xảy ra khi gửi email reset mật khẩu.");
+            });
     };
 
     return (
         <View style={styles.container}>
+            <Image style={styles.imgaeHeader} source={require('../../img/logo.png')} />
             <Text style={styles.title}>Reset Password</Text>
             <TextInput
                 style={styles.input}
@@ -29,16 +35,25 @@ const ResetPasswordScreen = ({ navigation }) => {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
-                autoCapitalize="none"
             />
+            {/* <TextInput
+                style={styles.input}
+                placeholder="Enter new password"
+                secureTextEntry
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Confirm new password"
+                secureTextEntry
+            /> */}
             <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
                 <Text style={styles.buttonText}>Confirm</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={styles.footerText}>
-                    Already have an account? <Text style={styles.link}>Sign In</Text>
-                </Text>
-            </TouchableOpacity>
+        <Text style={styles.footerText}>
+          Already have an account? <Text style={styles.link}>Sign In</Text>
+        </Text>
+      </TouchableOpacity>
         </View>
     );
 };
@@ -49,7 +64,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#e6e6fa',
-        paddingHorizontal: 20,
+    },
+    imgaeHeader: {
+        width: 250,
+        height: 300,
+        borderRadius: 10,
     },
     title: {
         fontSize: 24,
@@ -64,30 +83,20 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 10,
         marginBottom: 15,
-        backgroundColor: '#fff',
     },
     button: {
         backgroundColor: '#007AFF',
         paddingVertical: 15,
         paddingHorizontal: 30,
         borderRadius: 10,
-        width: '80%',
-        alignItems: 'center',
     },
     buttonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },
-    footerText: { 
-        marginTop: 20, 
-        fontSize: 16, 
-        color: "#666" 
-    },
-    link: { 
-        color: "#FF5733", 
-        fontWeight: "bold" 
-    }
+    footerText: { marginTop: 20, fontSize: 20, color: "#666" },
+  link: { color: "#FF5733", fontWeight: "bold" }
 });
 
 export default ResetPasswordScreen;
