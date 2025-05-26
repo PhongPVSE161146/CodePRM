@@ -21,22 +21,31 @@ export default function ProfileScreen() {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         return status === 'granted';
     };
-    const handleLogout = () => {
-        Alert.alert(
-            "Đăng xuất",
-            "Bạn có chắc chắn muốn đăng xuất không?",
-            [
-                { text: "Hủy", style: "cancel" },
-                {
-                    text: "Đăng xuất",
-                    onPress: () => {
-                        navigation.replace("Login"); // ✅ Quay về màn hình Login
-                    },
+ const handleLogout = () => {
+    Alert.alert(
+        "Đăng xuất",
+        "Bạn có chắc chắn muốn đăng xuất không?",
+        [
+            { text: "Hủy", style: "cancel" },
+            {
+                text: "Đăng xuất",
+                onPress: async () => {
+                    try {
+                        await auth.signOut(); // Đăng xuất Firebase
+                        navigation.reset({
+  index: 0,
+  routes: [{ name: 'Login' }],
+}); // Quay về màn hình Login
+                    } catch (error) {
+                        Alert.alert("Lỗi", "Đăng xuất thất bại. Vui lòng thử lại.");
+                    }
                 },
-            ],
-            { cancelable: true }
-        );
-    };
+            },
+        ],
+        { cancelable: true }
+    );
+};
+
     // Hàm để lấy thông tin người dùng từ Firebase
     useEffect(() => {
         if (user) {

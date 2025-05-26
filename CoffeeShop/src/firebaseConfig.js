@@ -5,12 +5,13 @@ import { getAuth, GoogleAuthProvider, signInWithCredential } from 'firebase/auth
 
 // Firebase Config (enter your credentials correctly)
 const firebaseConfig = {
-    apiKey: "AIzaSyANaCIGE65ek04vTpHcaFk39ghW4YVFSA0",
-    authDomain: "login-f243e.firebaseapp.com",
-    projectId: "login-f243e",
-    storageBucket: "login-f243e.appspot.com",
-    messagingSenderId: "929262282985",
-    appId: "1:929262282985:web:bb117a23ffdc287b76a878"
+  apiKey: "AIzaSyCmhFY91oRVB-4kzVNOftChOdJ78XZbJ_I",
+  authDomain: "systemmobile1.firebaseapp.com",
+  projectId: "systemmobile1",
+  storageBucket: "systemmobile1.appspot.com",
+  messagingSenderId: "780547792146",
+  appId: "1:780547792146:web:54bd3868d147318b7727cb",
+  measurementId: "G-7Z0MSP9QR2"
 };
 
 // Initialize Firebase
